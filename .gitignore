@@ -1,0 +1,23 @@
+# Build folders
+Debug/
+Release/
+
+# Object files
+*.o
+*.d
+*.su
+*.cyclo
+
+# Linker outputs
+*.elf
+*.map
+*.list
+
+# Eclipse / CubeIDE
+.settings/
+.cproject
+.project
+
+# OS files
+.DS_Store
+Thumbs.db
