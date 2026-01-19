@@ -1,115 +1,160 @@
-﻿# stm32f407-baremetal-driver-stack
+/* ============================================================
+   STM32F407 Bare-Metal Driver Stack
+   ============================================================ */
 
-Bare-metal driver stack for the STM32F407 microcontroller providing:
-- GPIO driver
-- I2C driver (SHT40, VEML6030 sensor interfaces with CRC checks)
-- USART driver for UART telemetry
+STM32F407 Bare-Metal Driver Stack
 
----
+---------------------------------------------------------------
+Overview
+---------------------------------------------------------------
+This repository contains a bare-metal firmware driver stack
+developed for the STM32F407 Cortex-M4 microcontroller.
+The project is implemented without STM32 HAL or CubeMX-
+generated code and focuses on register-level peripheral
+control, protocol correctness, and modular firmware design.
 
-## Table of contents
-- [Features](#features)
-- [Repository structure](#repository-structure)
-- [Hardware](#hardware)
-- [Quick start (build & flash)](#quick-start-build--flash)
-- [Usage example](#usage-example)
-- [Driver API highlights](#driver-api-highlights)
-- [Development notes](#development-notes)
-- [Contributing](#contributing)
-- [License](#license)
+Custom GPIO, I2C, and USART drivers are implemented from
+scratch. An application layer is built on top of these drivers
+to interface environmental sensors over I2C and transmit
+processed sensor data to a PC terminal using UART.
 
----
+---------------------------------------------------------------
+Hardware Platform
+---------------------------------------------------------------
+MCU   : STM32F407VG (Cortex-M4 with FPU)
+Board : STM32F407 Discovery
 
-## Features
-- Minimal, readable, bare-metal drivers for peripherals common to STM32 projects: GPIO, I2C, USART
-- Sensor examples and verified reads for SHT40 (temperature & humidity) and VEML6030 (ambient light)
-- Example application demonstrating periodic sensor reads and UART telemetry in `Src/main.c`
+Sensors:
+- SHT40  Temperature and Humidity Sensor (I2C)
+- VEML6030 Ambient Light Sensor (I2C)
 
-## Repository structure
-- `driver/` — low-level peripheral drivers (headers in `driver/Inc`, sources in `driver/Src`)
-- `Src/` — application code and sensor drivers (`main.c`, `sht40.c`, `veml6030.c`)
-- `Inc/` — public headers used by the application
-- `Startup/` — startup files and vector table
-- Linker scripts: `STM32F407VGTX_FLASH.ld`, `STM32F407VGTX_RAM.ld`
+Communication Interfaces:
+- I2C  (Master mode)
+- UART (Telemetry output)
 
-## Hardware
-- MCU: STM32F407VGTx (Cortex-M4)
-- Example sensors used:
-  - SHT40 (I2C)
-  - VEML6030 (I2C)
-- Default pin mappings used by the example (`Src/main.c`):
-  - I2C1: PB6 (SCL), PB7 (SDA)
-  - USART2: PA2 (TX), PA3 (RX)
+---------------------------------------------------------------
+Key Features
+---------------------------------------------------------------
+- Fully bare-metal GPIO, I2C, and USART drivers
+- No STM32 HAL, LL, or CubeMX-generated code
+- Blocking I2C master implementation
+- Correct handling of START, STOP, and Repeated START
+- ACK / NACK management as per STM32 reference manual
+- CRC-8 validation for SHT40 sensor data
+  - Polynomial     : 0x31
+  - Initial Value  : 0xFF
+- Error-aware application logic with CRC status reporting
+- Floating-point sensor computation using hardware FPU
+- UART logging with float formatting enabled
+- Clear separation between driver and application layers
+- Clean, modular, and extensible firmware design
 
-## Quick start (build & flash)
-Prerequisites:
-- ARM toolchain (e.g., `arm-none-eabi-gcc`)
-- OpenOCD or ST-Link utilities (`st-flash`, `openocd`) for flashing
+---------------------------------------------------------------
+Driver Architecture
+---------------------------------------------------------------
 
-Example (one-off) build using `arm-none-eabi-gcc`:
+GPIO Driver
+- Input, output, and alternate-function modes
+- Configurable output type and speed
+- Pull-up and pull-down control
+- Register-level configuration
 
-```sh
-# create build dir
-mkdir -p build
+I2C Driver
+- Master-mode operation
+- START, STOP, and Repeated START handling
+- ACK and NACK management
+- Blocking transmit and receive APIs
+- Designed for strict sensor-level protocol correctness
 
-# compile and link (adjust flags as needed)
-arm-none-eabi-gcc -mcpu=cortex-m4 -mthumb -TSTM32F407VGTX_FLASH.ld \
-  Src/*.c driver/Src/*.c Startup/*.s \
-  -IInc -Idriver/Inc \
-  -Os -ffunction-sections -fdata-sections -Wl,--gc-sections \
-  -o build/firmware.elf
+USART Driver
+- Configurable baud rate, word length, parity, and stop bits
+- Blocking transmit and receive
+- UART-based telemetry output
 
-# create binary
-arm-none-eabi-objcopy -O binary build/firmware.elf build/firmware.bin
+---------------------------------------------------------------
+Sensor Integration
+---------------------------------------------------------------
 
-# flash (example using st-flash)
-st-flash write build/firmware.bin 0x8000000
-```
+SHT40 – Temperature and Humidity Sensor
+- High-precision measurement mode
+- STOP condition enforced before conversion start
+- CRC-8 validation for temperature and humidity data
+- Status-based error reporting to application layer
 
-Notes:
-- You can also import this project into STM32CubeIDE or Keil and configure a project using the provided startup and linker scripts.
-- If you prefer `openocd`, use an appropriate `openocd` command or a tool like `st-link`.
+VEML6030 – Ambient Light Sensor
+- Register-based I2C communication
+- Lux conversion using datasheet scaling factors
+- Combined write and read transaction using Repeated START
 
-## Usage example
-The example application in `Src/main.c` demonstrates how to:
-1. Initialize GPIO pins for I2C and USART
-2. Configure and enable I2C1 and USART2
-3. Read sensor values and print telemetry via UART
+---------------------------------------------------------------
+Project Structure
+---------------------------------------------------------------
+stm32f407-baremetal-driver-stack/
+├── Core/
+│   ├── Src/
+│   │   ├── main.c
+│   │   ├── sht40.c
+│   │   └── veml6030.c
+│   └── Inc/
+│       ├── main.h
+│       ├── sht40.h
+│       └── veml6030.h
+│
+├── driver/
+│   ├── Inc/
+│   │   ├── stm32f407_gpio_driver.h
+│   │   ├── stm32f407_i2c_driver.h
+│   │   └── stm32f407_usart_driver.h
+│   └── Src/
+│       ├── stm32f407_gpio_driver.c
+│       ├── stm32f407_i2c_driver.c
+│       └── stm32f407_usart_driver.c
+│
+├── Startup/
+│   └── startup_stm32f407vgtx.s
+│
+├── STM32F407VGTX_FLASH.ld
+├── README.md
+└── .gitignore
 
-Key lines to inspect for usage:
-- `USART2_GPIOInits()`, `I2C1_GPIOInits()` — GPIO configuration
-- `I2C1_Inits()`, `USART2_Inits()` — peripheral configuration
-- `SHT40_ReadData(&I2C1Handle, &sht40_data)` and `VEML6030_ReadLux(&I2C1Handle)` — sensor reads
+---------------------------------------------------------------
+UART Output Example
+---------------------------------------------------------------
+Temp: 26.45 C | Hum: 48.12 % | Lux: 123.40 lx
 
-Example output (UART):
-```
-Temp: 23.45 C | Hum: 45.12 % | Lux: 123.45 lx
-```
+CRC Error Example:
+SHT40 ERROR: Temperature CRC failed | Lux: 123.40 lx
 
-## Driver API highlights
-- I2C:
-  - `I2C_Init`, `I2C_PeripheralControl`, `I2C_MasterSendData`, `I2C_MasterReceiveData`
-- USART:
-  - `USART_Init`, `USART_SendData`, `USART_PeripheralControl`
-- GPIO:
-  - `GPIO_Init`, `GPIO_WriteToOutputPin`, `GPIO_ReadFromInputPin`
+---------------------------------------------------------------
+Toolchain and Build Configuration
+---------------------------------------------------------------
+IDE        : STM32CubeIDE
+Compiler   : ARM GCC
+Build Type : Bare-metal (No RTOS)
+FPU        : FPv4-SP-D16 (Hard ABI)
 
-See header files in `driver/Inc` for full definitions and comments.
+Printf Float Support:
+-u _printf_float
 
-## Development notes
-- This is a small, bare-metal codebase (no RTOS). Keep changes focused and test on hardware.
-- Add unit tests as simple host-executable tests (e.g., harness in `tests/`) if you want CI-friendly checks; hardware integration tests should be run on a board.
-- Consider adding a `Makefile` or CMake setup for repeatable builds.
+Linker Script:
+Custom STM32F407 memory layout
 
-## Contributing
-- Open issues for bugs or feature requests
-- Prefer small, focused PRs with clear descriptions and a test plan (hardware test steps or expected output logs)
+---------------------------------------------------------------
+How to Build and Run
+---------------------------------------------------------------
+1. Open the project in STM32CubeIDE
+2. Enable FPU (FPv4-SP-D16, Hard ABI)
+3. Enable float formatting for printf
+4. Build the project
+5. Flash to STM32F407 Discovery board
+6. Monitor UART output at 115200 baud
 
-## License
-No license file is included in the repository. If you are the project owner, add a `LICENSE` (e.g., MIT) to make the terms explicit.
-
----
-
-Maintainer: repository owner
-
-If you'd like, I can also add a `CONTRIBUTING.md`, a `Makefile` for GCC builds, or a CI job that builds the firmware on each PR — tell me which you'd like next.
+---------------------------------------------------------------
+Engineering Focus
+---------------------------------------------------------------
+- Bare-metal STM32 driver development
+- Register-level peripheral programming
+- I2C protocol correctness and timing awareness
+- CRC-based data integrity validation
+- Toolchain and linker configuration for floating-point support
+- Modular firmware architecture suitable for extension
