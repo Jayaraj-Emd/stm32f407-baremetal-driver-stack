@@ -147,11 +147,3 @@ How to Build and Run
 6. Monitor UART output at 115200 baud
 
 ---------------------------------------------------------------
-Engineering Focus
----------------------------------------------------------------
-- Bare-metal STM32 driver development
-- Register-level peripheral programming
-- I2C protocol correctness and timing awareness
-- CRC-based data integrity validation
-- Toolchain and linker configuration for floating-point support
-- Modular firmware architecture suitable for extension
