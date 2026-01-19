@@ -86,6 +86,7 @@ VEML6030 – Ambient Light Sensor
 ---------------------------------------------------------------
 Project Structure
 ---------------------------------------------------------------
+```
 stm32f407-baremetal-driver-stack/
 ├── Core/
 │   ├── Src/
@@ -113,6 +114,7 @@ stm32f407-baremetal-driver-stack/
 ├── STM32F407VGTX_FLASH.ld
 ├── README.md
 └── .gitignore
+```
 
 ---------------------------------------------------------------
 UART Output Example
